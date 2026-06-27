@@ -1,15 +1,31 @@
 import { CiViewList } from "react-icons/ci";
 import { BiCategory } from "react-icons/bi";
-import { Link } from "react-router-dom";
+import { MdOutlinePointOfSale, MdOutlineHistory } from "react-icons/md";
+import { Link, useLocation } from "react-router-dom";
 
 export default function MobileBar() {
+  const { pathname } = useLocation();
   return (
-    <div className="md:hidden bg-white z-10 fixed bottom-0 left-0 w-full h-16 border flex gap-8 justify-center items-center">
+    <div className="md:hidden bg-white z-10 fixed bottom-0 left-0 w-full h-16 border flex justify-around items-center px-4">
       <Link to="/">
-        <CiViewList className="h-10 w-10 group-hover:text-white" />
+        <MdOutlinePointOfSale
+          className={`h-8 w-8 ${pathname === "/" ? "text-green-600" : "text-neutral-500"}`}
+        />
       </Link>
-      <Link to="/categories">
-        <BiCategory className="h-10 w-10 group-hover:text-white" />
+      <Link to="/orders">
+        <MdOutlineHistory
+          className={`h-8 w-8 ${pathname.startsWith("/orders") ? "text-green-600" : "text-neutral-500"}`}
+        />
+      </Link>
+      <Link to="/admin">
+        <CiViewList
+          className={`h-8 w-8 ${pathname === "/admin" ? "text-green-600" : "text-neutral-500"}`}
+        />
+      </Link>
+      <Link to="/admin/categories">
+        <BiCategory
+          className={`h-8 w-8 ${pathname.startsWith("/admin/categories") ? "text-green-600" : "text-neutral-500"}`}
+        />
       </Link>
     </div>
   );
