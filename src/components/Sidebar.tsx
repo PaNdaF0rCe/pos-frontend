@@ -1,4 +1,4 @@
-import { CiViewList } from "react-icons/ci";
+import { CiViewList, CiCreditCard1 } from "react-icons/ci";
 import { BiCategory } from "react-icons/bi";
 import { MdOutlinePointOfSale, MdOutlineHistory } from "react-icons/md";
 import { Link, useLocation } from "react-router-dom";
@@ -13,6 +13,7 @@ type NavItem = {
 const navItems: NavItem[] = [
   { to: "/", label: "Checkout", icon: <MdOutlinePointOfSale className="h-5 w-5" />, exact: true },
   { to: "/orders", label: "Sales", icon: <MdOutlineHistory className="h-5 w-5" /> },
+  { to: "/credits", label: "Credits", icon: <CiCreditCard1 className="h-5 w-5" /> },
   { to: "/admin", label: "Items", icon: <CiViewList className="h-5 w-5" />, exact: true },
   { to: "/admin/categories", label: "Categories", icon: <BiCategory className="h-5 w-5" /> },
 ];

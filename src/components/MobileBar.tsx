@@ -1,4 +1,4 @@
-import { CiViewList } from "react-icons/ci";
+import { CiViewList, CiCreditCard1 } from "react-icons/ci";
 import { BiCategory } from "react-icons/bi";
 import { MdOutlinePointOfSale, MdOutlineHistory } from "react-icons/md";
 import { Link, useLocation } from "react-router-dom";
@@ -15,6 +15,11 @@ export default function MobileBar() {
       <Link to="/orders">
         <MdOutlineHistory
           className={`h-8 w-8 ${pathname.startsWith("/orders") ? "text-green-600" : "text-neutral-500"}`}
+        />
+      </Link>
+      <Link to="/credits">
+        <CiCreditCard1
+          className={`h-8 w-8 ${pathname.startsWith("/credits") ? "text-green-600" : "text-neutral-500"}`}
         />
       </Link>
       <Link to="/admin">
