@@ -7,6 +7,7 @@ import { Item } from "../types/Item.type";
 import { OrderItem } from "../types/Order.type";
 import { placeOrder } from "../db/mutations/orderMutate";
 import { MdOutlinePayment, MdOutlineLocalAtm } from "react-icons/md";
+import { IoSearchOutline, IoCloseOutline } from "react-icons/io5";
 
 type CartEntry = OrderItem;
 
@@ -15,6 +16,7 @@ export default function POSPage() {
   const [categories, catLoading] = useListCategories();
   const [cart, setCart] = useState<CartEntry[]>([]);
   const [activeCat, setActiveCat] = useState<string>("all");
+  const [search, setSearch] = useState("");
   const [checkout, setCheckout] = useState<null | "cash" | "card">(null);
   const [cashInput, setCashInput] = useState("");
   const [placing, setPlacing] = useState(false);
@@ -27,10 +29,11 @@ export default function POSPage() {
 
   const isLoading = itemsLoading || catLoading;
 
-  const filteredItems =
+  const filteredItems = (
     activeCat === "all"
       ? items ?? []
-      : (items ?? []).filter((i) => i.category === activeCat);
+      : (items ?? []).filter((i) => i.category === activeCat)
+  ).filter((i) => i.name.toLowerCase().includes(search.trim().toLowerCase()));
 
   const subtotal = cart.reduce((sum, e) => sum + e.total, 0);
   const cashAmt = parseFloat(cashInput) || 0;
@@ -112,6 +115,26 @@ export default function POSPage() {
     <div className="flex gap-4 w-full h-full">
       {/* Item Grid */}
       <div className="flex-1 min-w-0 bg-white rounded-lg p-4 flex flex-col gap-4 overflow-hidden">
+        {/* Search */}
+        <div className="relative">
+          <IoSearchOutline className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search items..."
+            className="w-full border rounded-lg pl-9 pr-9 py-2 text-sm outline-green-400"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+            >
+              <IoCloseOutline className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
         {/* Category tabs */}
         <div className="flex gap-2 flex-wrap">
           <button
@@ -140,7 +163,12 @@ export default function POSPage() {
         </div>
 
         {/* Items */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 overflow-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 overflow-auto content-start">
+          {filteredItems.length === 0 && (
+            <p className="col-span-full text-neutral-400 text-sm text-center py-8">
+              No items found
+            </p>
+          )}
           {filteredItems.map((item) => (
             <button
               key={item.id}
@@ -178,7 +206,7 @@ export default function POSPage() {
       </div>
 
       {/* Cart */}
-      <div className="w-72 flex flex-col gap-3 bg-white rounded-lg p-4">
+      <div className="w-72 flex flex-col gap-3 bg-white rounded-lg p-4 h-full overflow-hidden">
         <h2 className="font-bold text-lg">Current Order</h2>
 
         {lastReceipt && (
