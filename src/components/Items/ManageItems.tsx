@@ -124,8 +124,6 @@ function ManageItemRow({
 }) {
   return (
     <div className="flex justify-between items-center gap-x-12 border px-6 py-2 rounded-lg">
-      <img src={item.imgUrl} className="rounded-full h-12 w-12" alt="" />
-
       <p className="text-lg font-semibold flex-1">{item.name}</p>
 
       <div className="hidden lg:block">

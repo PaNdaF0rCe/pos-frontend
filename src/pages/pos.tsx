@@ -176,14 +176,6 @@ export default function POSPage() {
               disabled={item.stock === 0}
               className="relative flex flex-col items-center bg-neutral-50 border rounded-xl p-3 hover:bg-green-50 hover:border-green-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-left"
             >
-              <img
-                src={
-                  item.imgUrl ||
-                  "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg"
-                }
-                className="w-16 h-16 rounded-lg object-cover mb-2"
-                alt={item.name}
-              />
               <p className="text-sm font-semibold text-center leading-tight">
                 {item.name}
               </p>

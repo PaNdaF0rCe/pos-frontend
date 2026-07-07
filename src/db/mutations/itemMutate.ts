@@ -8,7 +8,6 @@ export function addItem(
   price: number,
   stock: number,
   options: boolean,
-  imgUrl: string,
   itemId?: string
 ) {
   const updates: Record<string, any> = {};
@@ -19,7 +18,6 @@ export function addItem(
     price,
     stock,
     options,
-    imgUrl,
   };
 
   if (itemId) {
@@ -28,7 +26,6 @@ export function addItem(
     updates[`items/${itemId}/price`] = price;
     updates[`items/${itemId}/stock`] = stock;
     updates[`items/${itemId}/options`] = options;
-    updates[`items/${itemId}/imgUrl`] = imgUrl;
   } else {
     const key = push(ref(firebaseDB, "items"), item).key;
     updates[`items/${key}/id`] = key;

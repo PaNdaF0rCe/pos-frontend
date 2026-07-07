@@ -5,5 +5,4 @@ export type Item = {
   price: number;
   stock: number;
   options: boolean;
-  imgUrl: string;
 };

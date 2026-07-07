@@ -26,7 +26,6 @@ export default function MyModal({
       name: "",
     }
   );
-  const [img, setImg] = useState(item?.imgUrl || "");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -40,7 +39,6 @@ export default function MyModal({
         name: "",
       }
     );
-    setImg(item?.imgUrl || "");
   }, [item, categories]);
 
   function closeModal() {
@@ -54,7 +52,6 @@ export default function MyModal({
       price!,
       stock!,
       hasOptions,
-      img,
       item?.id || undefined
     );
   }
@@ -101,16 +98,7 @@ export default function MyModal({
                     {item ? "Edit" : "Add"} Item
                   </Dialog.Title>
 
-                  <img
-                    className="w-24 h-24 rounded-full mx-auto my-4 object-fill"
-                    src={
-                      img ||
-                      "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg"
-                    }
-                    alt=""
-                  />
-
-                  <div className="mt-2 gap-3 flex flex-col">
+                  <div className="mt-4 gap-3 flex flex-col">
                     <div>
                       <label
                         className="block font-semibold text-neutral-500 text-sm"
@@ -174,23 +162,6 @@ export default function MyModal({
                         name="stock"
                         className="border placeholder:text-sm rounded-lg w-full outline-purple-400 px-3 py-1"
                         type="number"
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        className="block font-semibold text-neutral-500 text-sm"
-                        htmlFor="image"
-                      >
-                        Image URL
-                      </label>
-                      <input
-                        onChange={(e) => setImg(e.target.value)}
-                        value={img}
-                        placeholder="Enter Image URL"
-                        name="image"
-                        className="border placeholder:text-sm rounded-lg w-full outline-purple-400 px-3 py-1"
-                        type="text"
                       />
                     </div>
 
