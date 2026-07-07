@@ -37,3 +37,9 @@ export function addItem(
 export function deleteItem(itemId: string) {
   return remove(ref(firebaseDB, `/items/${itemId}`));
 }
+
+export function addStock(itemId: string, currentStock: number, qty: number) {
+  return update(ref(firebaseDB), {
+    [`items/${itemId}/stock`]: currentStock + qty,
+  });
+}

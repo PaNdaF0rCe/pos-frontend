@@ -1,5 +1,6 @@
 import { CiEdit } from "react-icons/ci";
 import { FaRegTrashAlt } from "react-icons/fa";
+import { MdOutlineAddBox } from "react-icons/md";
 import { Item } from "../../types/Item.type";
 import { useListCategories, useListItems } from "../../db/hooks/dbHooks";
 import SearchInput, { SearchOption } from "../SearchInput";
@@ -7,6 +8,7 @@ import { useState } from "react";
 import { IoAddOutline } from "react-icons/io5";
 import AddItemModal from "../modals/AddItemModal";
 import DeleteItemModal from "../modals/DeleteItemModal";
+import AddStockModal from "../modals/AddStockModal";
 import { AiOutlineLoading } from "react-icons/ai";
 
 export default function ManageItems() {
@@ -22,6 +24,7 @@ export default function ManageItems() {
   });
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showStockModal, setShowStockModal] = useState(false);
   const [clickedItem, setClickedItem] = useState<Item>();
 
   const isLoading = itemsLoading || catLoading;
@@ -91,6 +94,7 @@ export default function ManageItems() {
         {filteredItems?.map((item) => (
           <ManageItemRow
             setShowDeleteModal={setShowDeleteModal}
+            setShowStockModal={setShowStockModal}
             setClickedItem={setClickedItem}
             setShowEditModal={setShowEditModal}
             key={item.id}
@@ -108,6 +112,13 @@ export default function ManageItems() {
         isOpen={showDeleteModal}
         setIsOpen={setShowDeleteModal}
       />
+      {clickedItem && showStockModal && (
+        <AddStockModal
+          item={clickedItem}
+          isOpen={showStockModal}
+          setIsOpen={setShowStockModal}
+        />
+      )}
     </>
   );
 }
@@ -116,11 +127,13 @@ function ManageItemRow({
   setClickedItem,
   setShowEditModal,
   setShowDeleteModal,
+  setShowStockModal,
 }: {
   item: Item;
   setClickedItem: React.Dispatch<React.SetStateAction<Item | undefined>>;
   setShowEditModal: React.Dispatch<React.SetStateAction<boolean>>;
   setShowDeleteModal: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowStockModal: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   return (
     <div className="flex justify-between items-center gap-x-12 border px-6 py-2 rounded-lg">
@@ -136,6 +149,16 @@ function ManageItemRow({
       </div>
 
       <div className="flex flex-col md:flex-row gap-2">
+        <div
+          onClick={() => {
+            setClickedItem(item);
+            setShowStockModal(true);
+          }}
+          className="rounded-full h-6 w-6 md:h-8 md:w-8 hover:cursor-pointer hover:bg-purple-200 transition-colors flex justify-center items-center bg-purple-100"
+          title="Add stock"
+        >
+          <MdOutlineAddBox className="text-purple-600" />
+        </div>
         <div
           onClick={() => {
             setClickedItem(item);
