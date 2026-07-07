@@ -59,7 +59,8 @@ export default function MyModal({
   const enable =
     name?.length > 0 &&
     price! > 0 &&
-    stock! > 0 &&
+    stock !== undefined &&
+    stock >= 0 &&
     hasOptions !== undefined &&
     selectedCategory.id !== "-1";
 
