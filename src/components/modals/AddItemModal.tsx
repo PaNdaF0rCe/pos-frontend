@@ -30,17 +30,17 @@ export default function MyModal({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    setName(item?.name!);
+    setName(item?.name || "");
     setPrice(item?.price);
     setStock(item?.stock);
-    setHasOptions(item?.options! || false);
+    setHasOptions(item?.options || false);
     setSelectedCategory(
       categories?.find((cat) => cat.id === item?.category) || {
         id: "-1",
         name: "",
       }
     );
-    setImg(item?.imgUrl!);
+    setImg(item?.imgUrl || "");
   }, [item, categories]);
 
   function closeModal() {
