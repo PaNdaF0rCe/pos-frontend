@@ -3,6 +3,7 @@ import { firebaseDB } from "../database";
 import { Person } from "../../types/Person.type";
 import { CreditEntry } from "../../types/CreditEntry.type";
 import { OrderItem } from "../../types/Order.type";
+import { StockMovement } from "../../types/StockMovement.type";
 
 export function addPerson(name: string, note?: string) {
   const updates: Record<string, any> = {};
@@ -52,6 +53,17 @@ export async function addCharge(
   for (const item of items) {
     const newStock = (stockMap[item.itemId] ?? 0) - item.qty;
     updates[`items/${item.itemId}/stock`] = Math.max(0, newStock);
+
+    const moveKey = push(ref(firebaseDB, "stockMovements")).key;
+    const movement: StockMovement = {
+      id: moveKey!,
+      itemId: item.itemId,
+      itemName: item.name,
+      type: "credit",
+      delta: -item.qty,
+      timestamp,
+    };
+    updates[`stockMovements/${moveKey}`] = movement;
   }
 
   await update(ref(firebaseDB), updates);

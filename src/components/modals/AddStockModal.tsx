@@ -25,7 +25,7 @@ export default function AddStockModal({
   async function handleSubmit() {
     if (!parsedQty || parsedQty <= 0) return;
     setSubmitting(true);
-    await addStock(item.id!, item.stock, parsedQty);
+    await addStock(item.id!, item.name, item.stock, parsedQty);
     setSubmitting(false);
     closeModal();
   }

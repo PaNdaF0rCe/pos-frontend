@@ -1,6 +1,7 @@
 import { push, ref, update } from "firebase/database";
 import { firebaseDB } from "../database";
 import { Order, OrderItem } from "../../types/Order.type";
+import { StockMovement } from "../../types/StockMovement.type";
 
 export async function placeOrder(
   items: OrderItem[],
@@ -28,6 +29,17 @@ export async function placeOrder(
   for (const item of items) {
     const newStock = (stockMap[item.itemId] ?? 0) - item.qty;
     updates[`items/${item.itemId}/stock`] = Math.max(0, newStock);
+
+    const moveKey = push(ref(firebaseDB, "stockMovements")).key;
+    const movement: StockMovement = {
+      id: moveKey!,
+      itemId: item.itemId,
+      itemName: item.name,
+      type: "sale",
+      delta: -item.qty,
+      timestamp,
+    };
+    updates[`stockMovements/${moveKey}`] = movement;
   }
 
   await update(ref(firebaseDB), updates);

@@ -52,7 +52,8 @@ export default function MyModal({
       price!,
       stock!,
       hasOptions,
-      item?.id || undefined
+      item?.id || undefined,
+      item?.stock
     );
   }
 

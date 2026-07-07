@@ -10,6 +10,7 @@ import OrdersPage from "./pages/orders";
 import ManageItemsPage from "./pages/manage-items";
 import CategoriesPage from "./pages/categories";
 import CreditsPage from "./pages/credits";
+import ReportsPage from "./pages/reports";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -24,6 +25,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Route path="/admin" element={<ManageItemsPage />} />
             <Route path="/admin/categories" element={<CategoriesPage />} />
             <Route path="/credits" element={<CreditsPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
           </Routes>
         </div>
         <MobileBar />

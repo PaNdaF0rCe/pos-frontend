@@ -1,6 +1,6 @@
 import { CiViewList, CiCreditCard1 } from "react-icons/ci";
 import { BiCategory } from "react-icons/bi";
-import { MdOutlinePointOfSale, MdOutlineHistory } from "react-icons/md";
+import { MdOutlinePointOfSale, MdOutlineHistory, MdOutlineAssessment } from "react-icons/md";
 import { Link, useLocation } from "react-router-dom";
 
 export default function MobileBar() {
@@ -30,6 +30,11 @@ export default function MobileBar() {
       <Link to="/admin/categories">
         <BiCategory
           className={`h-8 w-8 ${pathname.startsWith("/admin/categories") ? "text-green-600" : "text-neutral-500"}`}
+        />
+      </Link>
+      <Link to="/reports">
+        <MdOutlineAssessment
+          className={`h-8 w-8 ${pathname.startsWith("/reports") ? "text-green-600" : "text-neutral-500"}`}
         />
       </Link>
     </div>
