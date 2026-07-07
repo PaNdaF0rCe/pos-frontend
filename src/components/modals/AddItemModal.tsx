@@ -64,8 +64,7 @@ export default function MyModal({
     price! > 0 &&
     stock! > 0 &&
     hasOptions !== undefined &&
-    selectedCategory.id !== "-1" &&
-    !!img;
+    selectedCategory.id !== "-1";
 
   return (
     <>
