@@ -1,21 +1,28 @@
 import { useListOrders } from "../db/hooks/orderHooks";
 import { useListCreditEntries, useListPeople } from "../db/hooks/creditHooks";
 import { AiOutlineLoading } from "react-icons/ai";
-import { MdOutlinePayment, MdOutlineLocalAtm, MdOutlineCreditCard } from "react-icons/md";
+import {
+  MdOutlinePayment,
+  MdOutlineLocalAtm,
+  MdOutlineCreditCard,
+  MdOutlineCheckCircle,
+} from "react-icons/md";
 import { useState } from "react";
 import { OrderItem } from "../types/Order.type";
 
-type SaleMethod = "cash" | "card" | "credit";
+type SaleKind = "order" | "creditCharge" | "creditPayment";
 
 type SaleRow = {
   id: string;
   timestamp: number;
   items: OrderItem[];
   subtotal: number;
-  method: SaleMethod;
+  kind: SaleKind;
+  method?: "cash" | "card";
   personName?: string;
   cashReceived?: number;
   change?: number;
+  note?: string;
 };
 
 export default function OrdersPage() {
@@ -40,30 +47,45 @@ export default function OrdersPage() {
     timestamp: o.timestamp,
     items: o.items,
     subtotal: o.subtotal,
+    kind: "order",
     method: o.paymentMethod,
     cashReceived: o.cashReceived,
     change: o.change,
   }));
 
-  const creditRows: SaleRow[] = (entries ?? [])
+  const creditChargeRows: SaleRow[] = (entries ?? [])
     .filter((e) => e.type === "charge")
     .map((e) => ({
       id: e.id!,
       timestamp: e.timestamp,
       items: e.items ?? [],
       subtotal: e.amount,
-      method: "credit",
+      kind: "creditCharge",
       personName: peopleMap.get(e.personId) ?? "Unknown",
     }));
 
-  const sorted = [...orderRows, ...creditRows].sort((a, b) => b.timestamp - a.timestamp);
+  const creditPaymentRows: SaleRow[] = (entries ?? [])
+    .filter((e) => e.type === "payment")
+    .map((e) => ({
+      id: e.id!,
+      timestamp: e.timestamp,
+      items: [],
+      subtotal: e.amount,
+      kind: "creditPayment",
+      method: e.method ?? "cash",
+      personName: peopleMap.get(e.personId) ?? "Unknown",
+      note: e.note,
+    }));
+
+  const sorted = [...orderRows, ...creditChargeRows, ...creditPaymentRows].sort(
+    (a, b) => b.timestamp - a.timestamp
+  );
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const todayRows = sorted.filter((r) => r.timestamp >= todayStart.getTime());
-  const todayTotal = todayRows
-    .filter((r) => r.method !== "credit")
-    .reduce((s, r) => s + r.subtotal, 0);
+  const receivedRows = todayRows.filter((r) => r.kind !== "creditCharge");
+  const todayTotal = receivedRows.reduce((s, r) => s + r.subtotal, 0);
 
   return (
     <div className="max-w-[850px] w-full rounded-lg p-4 pb-6 bg-white">
@@ -76,9 +98,7 @@ export default function OrdersPage() {
           <p className="text-2xl font-bold text-green-700">
             Rs. {todayTotal.toLocaleString()}
           </p>
-          <p className="text-sm text-neutral-400">
-            {todayRows.filter((r) => r.method !== "credit").length} orders
-          </p>
+          <p className="text-sm text-neutral-400">{receivedRows.length} received</p>
         </div>
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-sm text-neutral-500">Cash Today</p>
@@ -105,7 +125,7 @@ export default function OrdersPage() {
           <p className="text-2xl font-bold text-orange-700">
             Rs.{" "}
             {todayRows
-              .filter((r) => r.method === "credit")
+              .filter((r) => r.kind === "creditCharge")
               .reduce((s, r) => s + r.subtotal, 0)
               .toLocaleString()}
           </p>
@@ -142,6 +162,35 @@ function SaleRowView({
   onToggle: () => void;
 }) {
   const date = new Date(row.timestamp);
+  const isCreditCharge = row.kind === "creditCharge";
+  const isCreditPayment = row.kind === "creditPayment";
+
+  const badgeClass = isCreditCharge
+    ? "bg-orange-100 text-orange-700"
+    : isCreditPayment
+    ? "bg-green-100 text-green-700"
+    : row.method === "card"
+    ? "bg-purple-100 text-purple-700"
+    : "bg-blue-100 text-blue-700";
+
+  const badgeIcon = isCreditCharge ? (
+    <MdOutlineCreditCard className="w-3 h-3" />
+  ) : isCreditPayment ? (
+    <MdOutlineCheckCircle className="w-3 h-3" />
+  ) : row.method === "card" ? (
+    <MdOutlinePayment className="w-3 h-3" />
+  ) : (
+    <MdOutlineLocalAtm className="w-3 h-3" />
+  );
+
+  const badgeLabel = isCreditCharge
+    ? "Credit"
+    : isCreditPayment
+    ? `Credit Payment (${row.method === "card" ? "Card" : "Cash"})`
+    : row.method === "card"
+    ? "Card"
+    : "Cash";
+
   return (
     <div
       className="border rounded-lg px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer"
@@ -162,28 +211,19 @@ function SaleRowView({
             })}
           </p>
           <p className="text-xs text-neutral-400">
-            {row.items.reduce((s, i) => s + i.qty, 0)} items
-            {row.method === "credit" && row.personName ? ` — ${row.personName}` : ""}
+            {isCreditPayment
+              ? `Payment from ${row.personName}`
+              : `${row.items.reduce((s, i) => s + i.qty, 0)} items${
+                  isCreditCharge && row.personName ? ` — ${row.personName}` : ""
+                }`}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <span
-            className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full font-semibold ${
-              row.method === "card"
-                ? "bg-purple-100 text-purple-700"
-                : row.method === "credit"
-                ? "bg-orange-100 text-orange-700"
-                : "bg-blue-100 text-blue-700"
-            }`}
+            className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full font-semibold ${badgeClass}`}
           >
-            {row.method === "card" ? (
-              <MdOutlinePayment className="w-3 h-3" />
-            ) : row.method === "credit" ? (
-              <MdOutlineCreditCard className="w-3 h-3" />
-            ) : (
-              <MdOutlineLocalAtm className="w-3 h-3" />
-            )}
-            {row.method === "card" ? "Card" : row.method === "credit" ? "Credit" : "Cash"}
+            {badgeIcon}
+            {badgeLabel}
           </span>
           <span className="font-bold text-green-700">
             Rs. {row.subtotal.toLocaleString()}
@@ -204,7 +244,13 @@ function SaleRowView({
               </span>
             </div>
           ))}
-          {row.method === "cash" && row.cashReceived !== undefined && (
+          {isCreditPayment && row.note && (
+            <div className="flex justify-between text-sm text-neutral-500">
+              <span>Note</span>
+              <span>{row.note}</span>
+            </div>
+          )}
+          {row.kind === "order" && row.method === "cash" && row.cashReceived !== undefined && (
             <div className="mt-2 pt-2 border-t flex justify-between text-sm text-neutral-500">
               <span>Cash received</span>
               <span>Rs. {row.cashReceived.toLocaleString()}</span>

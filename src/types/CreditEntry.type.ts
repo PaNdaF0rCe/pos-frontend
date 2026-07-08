@@ -6,6 +6,7 @@ export type CreditEntry = {
   type: "charge" | "payment";
   items?: OrderItem[];
   amount: number;
+  method?: "cash" | "card";
   note?: string;
   timestamp: number;
 };

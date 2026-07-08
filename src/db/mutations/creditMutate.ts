@@ -73,6 +73,7 @@ export async function addCharge(
 export function addPayment(
   personId: string,
   amount: number,
+  method: "cash" | "card",
   timestamp: number,
   note?: string
 ) {
@@ -80,6 +81,7 @@ export function addPayment(
     personId,
     type: "payment",
     amount,
+    method,
     timestamp,
     ...(note ? { note } : {}),
   };

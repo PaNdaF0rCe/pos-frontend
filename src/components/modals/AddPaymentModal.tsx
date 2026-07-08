@@ -19,6 +19,7 @@ export default function AddPaymentModal({
   balance: number;
 }) {
   const [amount, setAmount] = useState<string>("");
+  const [method, setMethod] = useState<"cash" | "card">("cash");
   const [date, setDate] = useState(todayInput());
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -27,6 +28,7 @@ export default function AddPaymentModal({
 
   function closeModal() {
     setAmount("");
+    setMethod("cash");
     setNote("");
     setDate(todayInput());
     setIsOpen(false);
@@ -36,7 +38,7 @@ export default function AddPaymentModal({
     if (amt <= 0) return;
     setSubmitting(true);
     const timestamp = new Date(`${date}T12:00:00`).getTime();
-    await addPayment(person.id!, amt, timestamp, note || undefined);
+    await addPayment(person.id!, amt, method, timestamp, note || undefined);
     setSubmitting(false);
     closeModal();
   }
@@ -88,6 +90,36 @@ export default function AddPaymentModal({
                       className="border rounded-lg w-full outline-green-400 px-3 py-2 text-lg font-bold"
                       autoFocus
                     />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-neutral-500 text-sm">
+                      Method
+                    </label>
+                    <div className="flex gap-2 mt-1">
+                      <button
+                        type="button"
+                        onClick={() => setMethod("cash")}
+                        className={`flex-1 rounded-lg py-1.5 text-sm font-semibold transition-colors ${
+                          method === "cash"
+                            ? "bg-blue-500 text-white"
+                            : "bg-neutral-100 hover:bg-neutral-200"
+                        }`}
+                      >
+                        Cash
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMethod("card")}
+                        className={`flex-1 rounded-lg py-1.5 text-sm font-semibold transition-colors ${
+                          method === "card"
+                            ? "bg-purple-500 text-white"
+                            : "bg-neutral-100 hover:bg-neutral-200"
+                        }`}
+                      >
+                        Card
+                      </button>
+                    </div>
                   </div>
 
                   <div>
