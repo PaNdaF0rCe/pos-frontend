@@ -92,3 +92,32 @@ export function addPayment(
 
   return update(ref(firebaseDB), updates);
 }
+
+export async function deleteCreditEntry(
+  entry: CreditEntry,
+  stockMap: Record<string, number>
+) {
+  const updates: Record<string, any> = {};
+  updates[`creditEntries/${entry.id}`] = null;
+
+  if (entry.type === "charge" && entry.items) {
+    for (const item of entry.items) {
+      const current = stockMap[item.itemId] ?? 0;
+      updates[`items/${item.itemId}/stock`] = current + item.qty;
+
+      const moveKey = push(ref(firebaseDB, "stockMovements")).key;
+      const movement: StockMovement = {
+        id: moveKey!,
+        itemId: item.itemId,
+        itemName: item.name,
+        type: "adjustment",
+        delta: item.qty,
+        timestamp: Date.now(),
+        note: "Reversed deleted credit charge",
+      };
+      updates[`stockMovements/${moveKey}`] = movement;
+    }
+  }
+
+  await update(ref(firebaseDB), updates);
+}

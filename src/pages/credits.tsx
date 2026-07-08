@@ -4,8 +4,10 @@ import { IoAddOutline, IoChevronDown, IoChevronUp, IoSearchOutline } from "react
 import { FaRegTrashAlt } from "react-icons/fa";
 import { MdOutlineLocalAtm } from "react-icons/md";
 import { useListPeople, useListCreditEntries } from "../db/hooks/creditHooks";
-import { addPerson } from "../db/mutations/creditMutate";
+import { useListItems } from "../db/hooks/dbHooks";
+import { addPerson, deleteCreditEntry } from "../db/mutations/creditMutate";
 import { Person } from "../types/Person.type";
+import { CreditEntry } from "../types/CreditEntry.type";
 import AddChargeModal from "../components/modals/AddChargeModal";
 import AddPaymentModal from "../components/modals/AddPaymentModal";
 import DeletePersonModal from "../components/modals/DeletePersonModal";
@@ -13,6 +15,7 @@ import DeletePersonModal from "../components/modals/DeletePersonModal";
 export default function CreditsPage() {
   const [people, peopleLoading] = useListPeople();
   const [entries, entriesLoading] = useListCreditEntries();
+  const [items] = useListItems();
   const [search, setSearch] = useState("");
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
@@ -22,6 +25,19 @@ export default function CreditsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Person | null>(null);
 
   const isLoading = peopleLoading || entriesLoading;
+
+  async function handleDeleteEntry(entry: CreditEntry) {
+    const label =
+      entry.type === "charge"
+        ? `this charge of Rs. ${entry.amount.toLocaleString()} (stock will be restored)`
+        : `this payment of Rs. ${entry.amount.toLocaleString()}`;
+    if (!window.confirm(`Delete ${label}? This cannot be undone.`)) return;
+    const stockMap: Record<string, number> = {};
+    for (const item of items ?? []) {
+      if (item.id) stockMap[item.id] = item.stock;
+    }
+    await deleteCreditEntry(entry, stockMap);
+  }
 
   if (isLoading)
     return (
@@ -177,7 +193,7 @@ export default function CreditsPage() {
                     history.map((entry) => (
                       <div
                         key={entry.id}
-                        className="flex justify-between items-start text-sm"
+                        className="flex justify-between items-center text-sm"
                       >
                         <div>
                           <p className="text-xs text-neutral-400">
@@ -195,18 +211,28 @@ export default function CreditsPage() {
                             </p>
                           ) : (
                             <p className="text-blue-700">
-                              Payment{entry.note ? ` — ${entry.note}` : ""}
+                              Payment{entry.method ? ` (${entry.method})` : ""}
+                              {entry.note ? ` — ${entry.note}` : ""}
                             </p>
                           )}
                         </div>
-                        <span
-                          className={`font-semibold ${
-                            entry.type === "charge" ? "text-red-600" : "text-blue-700"
-                          }`}
-                        >
-                          {entry.type === "charge" ? "+" : "−"} Rs.{" "}
-                          {entry.amount.toLocaleString()}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`font-semibold ${
+                              entry.type === "charge" ? "text-red-600" : "text-blue-700"
+                            }`}
+                          >
+                            {entry.type === "charge" ? "+" : "−"} Rs.{" "}
+                            {entry.amount.toLocaleString()}
+                          </span>
+                          <button
+                            onClick={() => handleDeleteEntry(entry)}
+                            className="w-5 h-5 rounded-full bg-red-50 hover:bg-red-100 flex items-center justify-center shrink-0"
+                            title="Delete entry"
+                          >
+                            <FaRegTrashAlt className="w-2.5 h-2.5 text-red-500" />
+                          </button>
+                        </div>
                       </div>
                     ))
                   )}
