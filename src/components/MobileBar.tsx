@@ -6,7 +6,7 @@ import { Link, useLocation } from "react-router-dom";
 export default function MobileBar() {
   const { pathname } = useLocation();
   return (
-    <div className="md:hidden bg-white z-10 fixed bottom-0 left-0 w-full h-16 border flex justify-around items-center px-4">
+    <div className="md:hidden print:hidden bg-white z-10 fixed bottom-0 left-0 w-full h-16 border flex justify-around items-center px-4">
       <Link to="/">
         <MdOutlinePointOfSale
           className={`h-8 w-8 ${pathname === "/" ? "text-green-600" : "text-neutral-500"}`}

@@ -6,6 +6,7 @@ import {
   MdOutlineLocalAtm,
   MdOutlineCreditCard,
   MdOutlineCheckCircle,
+  MdOutlinePrint,
 } from "react-icons/md";
 import { useState } from "react";
 import { OrderItem } from "../types/Order.type";
@@ -89,7 +90,16 @@ export default function OrdersPage() {
 
   return (
     <div className="max-w-[850px] w-full rounded-lg p-4 pb-6 bg-white">
-      <h2 className="text-black font-bold text-xl mb-4">Sales History</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-black font-bold text-xl">Sales History</h2>
+        <button
+          onClick={() => window.print()}
+          className="print:hidden flex items-center gap-2 text-sm font-semibold px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200"
+        >
+          <MdOutlinePrint className="w-4 h-4" />
+          Print / PDF
+        </button>
+      </div>
 
       {/* Today summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
@@ -133,7 +143,7 @@ export default function OrdersPage() {
       </div>
 
       {/* Sale list */}
-      <div className="space-y-2 overflow-auto max-h-[500px] pr-1">
+      <div className="space-y-2 overflow-auto max-h-[500px] print:max-h-none print:overflow-visible pr-1">
         {sorted.length === 0 && (
           <p className="text-neutral-400 text-sm text-center py-8">
             No sales yet

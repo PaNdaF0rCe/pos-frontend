@@ -27,7 +27,7 @@ export default function Sidebar() {
   }
 
   return (
-    <div className="bg-white hidden md:flex md:flex-col rounded-lg min-w-[220px] h-full ml-[-4px] py-6">
+    <div className="bg-white hidden md:flex md:flex-col rounded-lg min-w-[220px] h-full ml-[-4px] py-6 print:hidden">
       <div className="px-6 mb-8">
         <h1 className="font-extrabold text-xl leading-tight">
           <span className="text-green-700">Jason's</span>

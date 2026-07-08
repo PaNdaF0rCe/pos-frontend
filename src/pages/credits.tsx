@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AiOutlineLoading } from "react-icons/ai";
 import { IoAddOutline, IoChevronDown, IoChevronUp, IoSearchOutline } from "react-icons/io5";
 import { FaRegTrashAlt } from "react-icons/fa";
-import { MdOutlineLocalAtm } from "react-icons/md";
+import { MdOutlineLocalAtm, MdOutlinePrint } from "react-icons/md";
 import { useListPeople, useListCreditEntries } from "../db/hooks/creditHooks";
 import { useListItems } from "../db/hooks/dbHooks";
 import { addPerson, deleteCreditEntry } from "../db/mutations/creditMutate";
@@ -64,11 +64,20 @@ export default function CreditsPage() {
   );
 
   return (
-    <div className="max-w-[850px] w-full h-full flex flex-col rounded-lg p-4 pb-6 bg-white">
-      <h2 className="text-black font-bold text-xl mb-4">Credits</h2>
+    <div className="max-w-[850px] w-full h-full flex flex-col rounded-lg p-4 pb-6 bg-white print:h-auto">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-black font-bold text-xl">Credits</h2>
+        <button
+          onClick={() => window.print()}
+          className="print:hidden flex items-center gap-2 text-sm font-semibold px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200"
+        >
+          <MdOutlinePrint className="w-4 h-4" />
+          Print / PDF
+        </button>
+      </div>
 
       {/* Add person */}
-      <div className="flex items-end gap-3 flex-wrap mb-4">
+      <div className="flex items-end gap-3 flex-wrap mb-4 print:hidden">
         <div>
           <label className="block font-semibold text-neutral-500 text-sm">Name</label>
           <input
@@ -104,7 +113,7 @@ export default function CreditsPage() {
       </div>
 
       {/* Search */}
-      <div className="relative mb-4">
+      <div className="relative mb-4 print:hidden">
         <IoSearchOutline className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
         <input
           type="text"
@@ -116,7 +125,7 @@ export default function CreditsPage() {
       </div>
 
       {/* People list */}
-      <div className="flex-1 overflow-auto space-y-2">
+      <div className="flex-1 overflow-auto print:overflow-visible space-y-2">
         {filteredPeople.length === 0 && (
           <p className="text-neutral-400 text-sm text-center py-8">No people yet</p>
         )}
@@ -157,7 +166,7 @@ export default function CreditsPage() {
                       e.stopPropagation();
                       setChargeTarget(person);
                     }}
-                    className="text-xs font-semibold px-2 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200"
+                    className="print:hidden text-xs font-semibold px-2 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200"
                   >
                     Add items
                   </button>
@@ -166,7 +175,7 @@ export default function CreditsPage() {
                       e.stopPropagation();
                       setPaymentTarget(person);
                     }}
-                    className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100"
+                    className="print:hidden flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100"
                   >
                     <MdOutlineLocalAtm className="w-3.5 h-3.5" />
                     Payment
@@ -176,7 +185,7 @@ export default function CreditsPage() {
                       e.stopPropagation();
                       setDeleteTarget(person);
                     }}
-                    className="w-7 h-7 rounded-full bg-red-50 hover:bg-red-100 flex items-center justify-center"
+                    className="print:hidden w-7 h-7 rounded-full bg-red-50 hover:bg-red-100 flex items-center justify-center"
                   >
                     <FaRegTrashAlt className="w-3 h-3 text-red-500" />
                   </button>
@@ -227,7 +236,7 @@ export default function CreditsPage() {
                           </span>
                           <button
                             onClick={() => handleDeleteEntry(entry)}
-                            className="w-5 h-5 rounded-full bg-red-50 hover:bg-red-100 flex items-center justify-center shrink-0"
+                            className="print:hidden w-5 h-5 rounded-full bg-red-50 hover:bg-red-100 flex items-center justify-center shrink-0"
                             title="Delete entry"
                           >
                             <FaRegTrashAlt className="w-2.5 h-2.5 text-red-500" />

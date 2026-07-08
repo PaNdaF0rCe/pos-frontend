@@ -1,9 +1,13 @@
 import { useMemo, useState } from "react";
 import { AiOutlineLoading } from "react-icons/ai";
+import { MdOutlinePrint } from "react-icons/md";
 import { useListOrders } from "../db/hooks/orderHooks";
 import { useListStockMovements } from "../db/hooks/stockHooks";
+import { useListCreditEntries, useListPeople } from "../db/hooks/creditHooks";
 import { Order } from "../types/Order.type";
 import { StockMovement } from "../types/StockMovement.type";
+import { CreditEntry } from "../types/CreditEntry.type";
+import { Person } from "../types/Person.type";
 
 type RangePreset = "today" | "week" | "month" | "lastMonth" | "custom";
 
@@ -65,7 +69,9 @@ function pillClass(active: boolean) {
 export default function ReportsPage() {
   const [orders, ordersLoading] = useListOrders();
   const [movements, movementsLoading] = useListStockMovements();
-  const [tab, setTab] = useState<"sales" | "stock">("sales");
+  const [creditEntries, creditLoading] = useListCreditEntries();
+  const [people, peopleLoading] = useListPeople();
+  const [tab, setTab] = useState<"sales" | "stock" | "credit">("sales");
   const [preset, setPreset] = useState<RangePreset>("month");
 
   const now = new Date();
@@ -93,7 +99,7 @@ export default function ReportsPage() {
     }
   }, [preset, customStart, customEnd]);
 
-  const isLoading = ordersLoading || movementsLoading;
+  const isLoading = ordersLoading || movementsLoading || creditLoading || peopleLoading;
 
   if (isLoading)
     return (
@@ -108,21 +114,45 @@ export default function ReportsPage() {
   const filteredMovements = (movements ?? []).filter(
     (m) => m.timestamp >= rangeStart && m.timestamp <= rangeEnd
   );
+  const filteredCreditEntries = (creditEntries ?? []).filter(
+    (e) => e.timestamp >= rangeStart && e.timestamp <= rangeEnd
+  );
+
+  const rangeLabel =
+    preset === "custom" ? `${customStart} to ${customEnd}` : presetLabel(preset);
+  const tabLabel =
+    tab === "sales" ? "Sales Report" : tab === "stock" ? "Stock Movements Report" : "Credit Report";
 
   return (
-    <div className="max-w-[900px] w-full h-full flex flex-col rounded-lg p-4 pb-6 bg-white">
-      <h2 className="text-black font-bold text-xl mb-4">Reports</h2>
+    <div className="max-w-[900px] w-full h-full flex flex-col rounded-lg p-4 pb-6 bg-white print:h-auto print:max-w-full">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-black font-bold text-xl">Reports</h2>
+        <button
+          onClick={() => window.print()}
+          className="print:hidden flex items-center gap-2 text-sm font-semibold px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200"
+        >
+          <MdOutlinePrint className="w-4 h-4" />
+          Print / PDF
+        </button>
+      </div>
 
-      <div className="flex gap-2 mb-4">
+      <p className="hidden print:block text-sm text-neutral-500 mb-4">
+        {tabLabel} — {rangeLabel}
+      </p>
+
+      <div className="flex gap-2 mb-4 print:hidden">
         <button onClick={() => setTab("sales")} className={pillClass(tab === "sales")}>
           Sales
         </button>
         <button onClick={() => setTab("stock")} className={pillClass(tab === "stock")}>
           Stock Movements
         </button>
+        <button onClick={() => setTab("credit")} className={pillClass(tab === "credit")}>
+          Credit
+        </button>
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap mb-6">
+      <div className="flex items-center gap-2 flex-wrap mb-6 print:hidden">
         {(["today", "week", "month", "lastMonth"] as RangePreset[]).map((p) => (
           <button key={p} onClick={() => setPreset(p)} className={pillClass(preset === p)}>
             {presetLabel(p)}
@@ -150,11 +180,17 @@ export default function ReportsPage() {
         )}
       </div>
 
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto print:overflow-visible">
         {tab === "sales" ? (
           <SalesReport orders={filteredOrders} />
-        ) : (
+        ) : tab === "stock" ? (
           <StockReport movements={filteredMovements} />
+        ) : (
+          <CreditReport
+            periodEntries={filteredCreditEntries}
+            allEntries={creditEntries ?? []}
+            people={people ?? []}
+          />
         )}
       </div>
     </div>
@@ -168,12 +204,13 @@ function SummaryCard({
 }: {
   label: string;
   value: string;
-  color: "green" | "blue" | "purple" | "neutral";
+  color: "green" | "blue" | "purple" | "orange" | "neutral";
 }) {
   const bg = {
     green: "bg-green-50 border-green-200 text-green-700",
     blue: "bg-blue-50 border-blue-200 text-blue-700",
     purple: "bg-purple-50 border-purple-200 text-purple-700",
+    orange: "bg-orange-50 border-orange-200 text-orange-700",
     neutral: "bg-neutral-50 border-neutral-200 text-neutral-700",
   }[color];
   return (
@@ -238,7 +275,7 @@ function SalesReport({ orders }: { orders: Order[] }) {
         {dayRows.length === 0 ? (
           <p className="text-neutral-400 text-sm text-center py-6">No sales in this range</p>
         ) : (
-          <div className="space-y-1 max-h-56 overflow-auto">
+          <div className="space-y-1 max-h-56 overflow-auto print:max-h-none print:overflow-visible">
             {dayRows.map(([key, d]) => (
               <div key={key} className="flex justify-between text-sm border-b py-1.5">
                 <span>{d.label}</span>
@@ -353,7 +390,7 @@ function StockReport({ movements }: { movements: StockMovement[] }) {
         {sortedLog.length === 0 ? (
           <p className="text-neutral-400 text-sm text-center py-6">No entries in this range</p>
         ) : (
-          <div className="space-y-1 max-h-72 overflow-auto">
+          <div className="space-y-1 max-h-72 overflow-auto print:max-h-none print:overflow-visible">
             {sortedLog.map((m) => (
               <div key={m.id} className="flex justify-between items-center text-xs border-b py-1.5">
                 <span className="text-neutral-400 w-16 shrink-0">
@@ -370,6 +407,147 @@ function StockReport({ movements }: { movements: StockMovement[] }) {
                   }`}
                 >
                   {m.delta > 0 ? `+${m.delta}` : m.delta}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CreditReport({
+  periodEntries,
+  allEntries,
+  people,
+}: {
+  periodEntries: CreditEntry[];
+  allEntries: CreditEntry[];
+  people: Person[];
+}) {
+  const peopleMap = new Map(people.map((p) => [p.id, p.name]));
+
+  const charged = periodEntries
+    .filter((e) => e.type === "charge")
+    .reduce((s, e) => s + e.amount, 0);
+  const collected = periodEntries
+    .filter((e) => e.type === "payment")
+    .reduce((s, e) => s + e.amount, 0);
+
+  const allTimeBalance = new Map<string, number>();
+  for (const e of allEntries) {
+    const cur = allTimeBalance.get(e.personId) ?? 0;
+    allTimeBalance.set(e.personId, cur + (e.type === "charge" ? e.amount : -e.amount));
+  }
+  const totalOutstanding = Array.from(allTimeBalance.values()).reduce(
+    (s, b) => s + Math.max(0, b),
+    0
+  );
+
+  const byPerson = new Map<string, { name: string; charged: number; paid: number }>();
+  for (const e of periodEntries) {
+    const entry = byPerson.get(e.personId) ?? {
+      name: peopleMap.get(e.personId) ?? "Unknown",
+      charged: 0,
+      paid: 0,
+    };
+    if (e.type === "charge") entry.charged += e.amount;
+    else entry.paid += e.amount;
+    byPerson.set(e.personId, entry);
+  }
+
+  const personIds = new Set([...byPerson.keys(), ...allTimeBalance.keys()]);
+  const rows = Array.from(personIds)
+    .map((id) => {
+      const act = byPerson.get(id) ?? {
+        name: peopleMap.get(id) ?? "Unknown",
+        charged: 0,
+        paid: 0,
+      };
+      return { ...act, balance: allTimeBalance.get(id) ?? 0 };
+    })
+    .filter((r) => r.charged > 0 || r.paid > 0 || r.balance !== 0)
+    .sort((a, b) => b.balance - a.balance);
+
+  const sortedLog = [...periodEntries].sort((a, b) => b.timestamp - a.timestamp);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <SummaryCard label="Charged (period)" value={`Rs. ${charged.toLocaleString()}`} color="orange" />
+        <SummaryCard label="Collected (period)" value={`Rs. ${collected.toLocaleString()}`} color="green" />
+        <SummaryCard
+          label="Total Outstanding"
+          value={`Rs. ${totalOutstanding.toLocaleString()}`}
+          color="neutral"
+        />
+      </div>
+
+      <div>
+        <h3 className="font-semibold text-sm text-neutral-600 mb-2">By person</h3>
+        {rows.length === 0 ? (
+          <p className="text-neutral-400 text-sm text-center py-6">
+            No credit activity in this range
+          </p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-neutral-400 border-b">
+                <th className="py-1.5 font-medium">Person</th>
+                <th className="py-1.5 font-medium text-right">Charged</th>
+                <th className="py-1.5 font-medium text-right">Paid</th>
+                <th className="py-1.5 font-medium text-right">Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.name} className="border-b last:border-0">
+                  <td className="py-1.5">{r.name}</td>
+                  <td className="py-1.5 text-right text-orange-600">
+                    {r.charged ? `Rs. ${r.charged.toLocaleString()}` : "—"}
+                  </td>
+                  <td className="py-1.5 text-right text-green-700">
+                    {r.paid ? `Rs. ${r.paid.toLocaleString()}` : "—"}
+                  </td>
+                  <td
+                    className={`py-1.5 text-right font-semibold ${
+                      r.balance > 0 ? "text-red-600" : "text-green-700"
+                    }`}
+                  >
+                    Rs. {r.balance.toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div>
+        <h3 className="font-semibold text-sm text-neutral-600 mb-2">Log</h3>
+        {sortedLog.length === 0 ? (
+          <p className="text-neutral-400 text-sm text-center py-6">No entries in this range</p>
+        ) : (
+          <div className="space-y-1 max-h-72 overflow-auto print:max-h-none print:overflow-visible">
+            {sortedLog.map((e) => (
+              <div key={e.id} className="flex justify-between items-center text-xs border-b py-1.5">
+                <span className="text-neutral-400 w-16 shrink-0">
+                  {new Date(e.timestamp).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                  })}
+                </span>
+                <span className="flex-1 px-2 truncate">
+                  {peopleMap.get(e.personId) ?? "Unknown"}
+                </span>
+                <span className="capitalize text-neutral-500 w-20 text-right">{e.type}</span>
+                <span
+                  className={`w-24 text-right font-semibold ${
+                    e.type === "charge" ? "text-orange-600" : "text-green-700"
+                  }`}
+                >
+                  {e.type === "charge" ? "+" : "−"} Rs. {e.amount.toLocaleString()}
                 </span>
               </div>
             ))}

@@ -16,9 +16,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
       <Analytics />
-      <main className="p-4 md:p-6 flex gap-4 bg-neutral-100 h-screen overflow-hidden">
+      <main className="p-4 md:p-6 flex gap-4 bg-neutral-100 h-screen overflow-hidden print:h-auto print:overflow-visible print:bg-white print:p-0 print:block">
         <Sidebar />
-        <div className="flex-1 min-w-0 pb-16 md:pb-0 h-full overflow-y-auto">
+        <div className="flex-1 min-w-0 pb-16 md:pb-0 h-full overflow-y-auto print:h-auto print:overflow-visible print:pb-0">
           <Routes>
             <Route path="/" element={<POSPage />} />
             <Route path="/orders" element={<OrdersPage />} />
