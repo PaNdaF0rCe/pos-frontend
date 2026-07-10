@@ -4,6 +4,8 @@ import { Person } from "../../types/Person.type";
 import { CreditEntry } from "../../types/CreditEntry.type";
 import { OrderItem } from "../../types/Order.type";
 import { StockMovement } from "../../types/StockMovement.type";
+import { StockBatch } from "../../types/StockBatch.type";
+import { applyBatchConsumption, reverseToBatch } from "./batchMutate";
 
 export function addPerson(name: string, note?: string) {
   const updates: Record<string, any> = {};
@@ -34,6 +36,7 @@ export async function addCharge(
   items: OrderItem[],
   amount: number,
   stockMap: Record<string, number>,
+  batches: StockBatch[],
   timestamp: number,
   note?: string
 ) {
@@ -50,10 +53,13 @@ export async function addCharge(
   const updates: Record<string, any> = {};
   updates[`creditEntries/${key}/id`] = key;
 
-  for (const item of items) {
-    const newStock = (stockMap[item.itemId] ?? 0) - item.qty;
-    updates[`items/${item.itemId}/stock`] = Math.max(0, newStock);
+  const qtyByItem = applyBatchConsumption(updates, batches, items);
+  for (const [itemId, qty] of Object.entries(qtyByItem)) {
+    const newStock = (stockMap[itemId] ?? 0) - qty;
+    updates[`items/${itemId}/stock`] = Math.max(0, newStock);
+  }
 
+  for (const item of items) {
     const moveKey = push(ref(firebaseDB, "stockMovements")).key;
     const movement: StockMovement = {
       id: moveKey!,
@@ -95,7 +101,8 @@ export function addPayment(
 
 export async function deleteCreditEntry(
   entry: CreditEntry,
-  stockMap: Record<string, number>
+  stockMap: Record<string, number>,
+  batches: StockBatch[]
 ) {
   const updates: Record<string, any> = {};
   updates[`creditEntries/${entry.id}`] = null;
@@ -104,6 +111,7 @@ export async function deleteCreditEntry(
     for (const item of entry.items) {
       const current = stockMap[item.itemId] ?? 0;
       updates[`items/${item.itemId}/stock`] = current + item.qty;
+      reverseToBatch(updates, batches, item.itemId, item.price, item.qty, entry.timestamp);
 
       const moveKey = push(ref(firebaseDB, "stockMovements")).key;
       const movement: StockMovement = {

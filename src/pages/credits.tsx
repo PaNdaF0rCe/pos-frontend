@@ -5,6 +5,7 @@ import { FaRegTrashAlt } from "react-icons/fa";
 import { MdOutlineLocalAtm, MdOutlinePrint } from "react-icons/md";
 import { useListPeople, useListCreditEntries } from "../db/hooks/creditHooks";
 import { useListItems } from "../db/hooks/dbHooks";
+import { useListStockBatches } from "../db/hooks/batchHooks";
 import { addPerson, deleteCreditEntry } from "../db/mutations/creditMutate";
 import { Person } from "../types/Person.type";
 import { CreditEntry } from "../types/CreditEntry.type";
@@ -16,6 +17,7 @@ export default function CreditsPage() {
   const [people, peopleLoading] = useListPeople();
   const [entries, entriesLoading] = useListCreditEntries();
   const [items] = useListItems();
+  const [batches] = useListStockBatches();
   const [search, setSearch] = useState("");
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
@@ -36,7 +38,7 @@ export default function CreditsPage() {
     for (const item of items ?? []) {
       if (item.id) stockMap[item.id] = item.stock;
     }
-    await deleteCreditEntry(entry, stockMap);
+    await deleteCreditEntry(entry, stockMap, batches ?? []);
   }
 
   if (isLoading)

@@ -3,6 +3,8 @@ import { FaRegTrashAlt } from "react-icons/fa";
 import { MdOutlineAddBox } from "react-icons/md";
 import { Item } from "../../types/Item.type";
 import { useListCategories, useListItems } from "../../db/hooks/dbHooks";
+import { useListStockBatches } from "../../db/hooks/batchHooks";
+import { migrateLegacyStock } from "../../db/mutations/batchMutate";
 import SearchInput, { SearchOption } from "../SearchInput";
 import { useState } from "react";
 import { IoAddOutline } from "react-icons/io5";
@@ -14,6 +16,7 @@ import { AiOutlineLoading } from "react-icons/ai";
 export default function ManageItems() {
   const [items, itemsLoading] = useListItems();
   const [categories, catLoading] = useListCategories();
+  const [batches, batchesLoading] = useListStockBatches();
   const [selectedItem, setSelectedItem] = useState<SearchOption>({
     id: "-1",
     name: "",
@@ -26,8 +29,14 @@ export default function ManageItems() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
   const [clickedItem, setClickedItem] = useState<Item>();
+  const [migrating, setMigrating] = useState(false);
 
-  const isLoading = itemsLoading || catLoading;
+  const isLoading = itemsLoading || catLoading || batchesLoading;
+
+  const itemsWithBatches = new Set((batches ?? []).map((b) => b.itemId));
+  const needsMigration = (items ?? []).some(
+    (i) => i.id && i.stock > 0 && !itemsWithBatches.has(i.id)
+  );
 
   const filteredItems = !itemsLoading
     ? items
@@ -66,6 +75,26 @@ export default function ManageItems() {
           </p>
         </button>
       </div>
+
+      {needsMigration && (
+        <div className="mt-4 flex items-center justify-between gap-3 bg-purple-50 border border-purple-200 rounded-lg px-4 py-3">
+          <p className="text-sm text-purple-700">
+            Set up batch pricing for existing stock so old and newly-restocked
+            units can sell at different prices.
+          </p>
+          <button
+            disabled={migrating}
+            onClick={async () => {
+              setMigrating(true);
+              await migrateLegacyStock(items ?? [], batches ?? []);
+              setMigrating(false);
+            }}
+            className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg bg-purple-500 hover:bg-purple-600 disabled:opacity-40 text-white"
+          >
+            {migrating ? "Setting up..." : "Set up now"}
+          </button>
+        </div>
+      )}
 
       <div className="mt-6 flex gap-4 justify-between">
         <SearchInput

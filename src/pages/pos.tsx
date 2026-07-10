@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useListCategories, useListItems } from "../db/hooks/dbHooks";
+import { useListStockBatches } from "../db/hooks/batchHooks";
 import { AiOutlineLoading } from "react-icons/ai";
 import { IoAddOutline, IoRemoveOutline } from "react-icons/io5";
 import { FaRegTrashAlt } from "react-icons/fa";
@@ -8,12 +9,14 @@ import { OrderItem } from "../types/Order.type";
 import { placeOrder } from "../db/mutations/orderMutate";
 import { MdOutlinePayment, MdOutlineLocalAtm } from "react-icons/md";
 import { IoSearchOutline, IoCloseOutline } from "react-icons/io5";
+import { addUnitToCart, nextUnitPrice, reservedQtyForItem } from "../lib/cartPricing";
 
 type CartEntry = OrderItem;
 
 export default function POSPage() {
   const [items, itemsLoading] = useListItems();
   const [categories, catLoading] = useListCategories();
+  const [batches, batchesLoading] = useListStockBatches();
   const [cart, setCart] = useState<CartEntry[]>([]);
   const [activeCat, setActiveCat] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -27,7 +30,7 @@ export default function POSPage() {
     change?: number;
   } | null>(null);
 
-  const isLoading = itemsLoading || catLoading;
+  const isLoading = itemsLoading || catLoading || batchesLoading;
 
   const filteredItems = (
     activeCat === "all"
@@ -40,42 +43,29 @@ export default function POSPage() {
   const change = cashAmt - subtotal;
 
   function addToCart(item: Item) {
-    setCart((prev) => {
-      const existing = prev.find((e) => e.itemId === item.id);
-      if (existing) {
-        return prev.map((e) =>
-          e.itemId === item.id
-            ? { ...e, qty: e.qty + 1, total: (e.qty + 1) * e.price }
-            : e
-        );
-      }
-      return [
-        ...prev,
-        {
-          itemId: item.id!,
-          name: item.name,
-          price: item.price,
-          qty: 1,
-          total: item.price,
-        },
-      ];
-    });
+    setCart((prev) => addUnitToCart(prev, item, batches ?? []));
   }
 
-  function updateQty(itemId: string, delta: number) {
+  function incrementLine(itemId: string) {
+    const item = (items ?? []).find((i) => i.id === itemId);
+    if (!item) return;
+    setCart((prev) => addUnitToCart(prev, item, batches ?? []));
+  }
+
+  function decrementLine(itemId: string, price: number) {
     setCart((prev) =>
       prev
         .map((e) =>
-          e.itemId === itemId
-            ? { ...e, qty: e.qty + delta, total: (e.qty + delta) * e.price }
+          e.itemId === itemId && e.price === price
+            ? { ...e, qty: e.qty - 1, total: (e.qty - 1) * price }
             : e
         )
         .filter((e) => e.qty > 0)
     );
   }
 
-  function removeFromCart(itemId: string) {
-    setCart((prev) => prev.filter((e) => e.itemId !== itemId));
+  function removeFromCart(itemId: string, price: number) {
+    setCart((prev) => prev.filter((e) => !(e.itemId === itemId && e.price === price)));
   }
 
   async function handlePayment(method: "cash" | "card") {
@@ -90,6 +80,7 @@ export default function POSPage() {
       subtotal,
       method,
       stockMap,
+      batches ?? [],
       method === "cash" ? cashAmt : undefined
     );
     setLastReceipt({
@@ -169,31 +160,38 @@ export default function POSPage() {
               No items found
             </p>
           )}
-          {filteredItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => addToCart(item)}
-              disabled={item.stock === 0}
-              className="relative flex flex-col items-center bg-neutral-50 border rounded-xl p-3 hover:bg-green-50 hover:border-green-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-left"
-            >
-              <p className="text-sm font-semibold text-center leading-tight">
-                {item.name}
-              </p>
-              <p className="text-green-700 font-bold mt-1">
-                Rs. {item.price.toLocaleString()}
-              </p>
-              {item.stock <= 5 && item.stock > 0 && (
-                <span className="absolute top-2 right-2 bg-orange-100 text-orange-600 text-xs px-1 rounded">
-                  {item.stock} left
-                </span>
-              )}
-              {item.stock === 0 && (
-                <span className="absolute top-2 right-2 bg-red-100 text-red-600 text-xs px-1 rounded">
-                  Out
-                </span>
-              )}
-            </button>
-          ))}
+          {filteredItems.map((item) => {
+            const effectivePrice = nextUnitPrice(
+              batches ?? [],
+              item.id!,
+              reservedQtyForItem(cart, item.id!)
+            );
+            return (
+              <button
+                key={item.id}
+                onClick={() => addToCart(item)}
+                disabled={effectivePrice === null}
+                className="relative flex flex-col items-center bg-neutral-50 border rounded-xl p-3 hover:bg-green-50 hover:border-green-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-left"
+              >
+                <p className="text-sm font-semibold text-center leading-tight">
+                  {item.name}
+                </p>
+                <p className="text-green-700 font-bold mt-1">
+                  Rs. {(effectivePrice ?? item.price).toLocaleString()}
+                </p>
+                {item.stock <= 5 && item.stock > 0 && (
+                  <span className="absolute top-2 right-2 bg-orange-100 text-orange-600 text-xs px-1 rounded">
+                    {item.stock} left
+                  </span>
+                )}
+                {item.stock === 0 && (
+                  <span className="absolute top-2 right-2 bg-red-100 text-red-600 text-xs px-1 rounded">
+                    Out
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -230,7 +228,7 @@ export default function POSPage() {
           <div className="flex-1 overflow-auto space-y-2">
             {cart.map((entry) => (
               <div
-                key={entry.itemId}
+                key={`${entry.itemId}-${entry.price}`}
                 className="flex items-center gap-2 border rounded-lg px-3 py-2"
               >
                 <div className="flex-1 min-w-0">
@@ -241,20 +239,20 @@ export default function POSPage() {
                 </div>
                 <div className="flex items-center gap-1">
                   <button
-                    onClick={() => updateQty(entry.itemId, -1)}
+                    onClick={() => decrementLine(entry.itemId, entry.price)}
                     className="w-6 h-6 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center"
                   >
                     <IoRemoveOutline className="w-3 h-3" />
                   </button>
                   <span className="text-sm w-4 text-center">{entry.qty}</span>
                   <button
-                    onClick={() => updateQty(entry.itemId, 1)}
+                    onClick={() => incrementLine(entry.itemId)}
                     className="w-6 h-6 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center"
                   >
                     <IoAddOutline className="w-3 h-3" />
                   </button>
                   <button
-                    onClick={() => removeFromCart(entry.itemId)}
+                    onClick={() => removeFromCart(entry.itemId, entry.price)}
                     className="w-6 h-6 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center ml-1"
                   >
                     <FaRegTrashAlt className="w-3 h-3 text-red-500" />

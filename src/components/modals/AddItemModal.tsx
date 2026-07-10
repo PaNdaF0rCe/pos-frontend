@@ -2,6 +2,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import { Fragment, useEffect } from "react";
 import SearchInput, { SearchOption } from "../SearchInput";
 import { useListCategories } from "../../db/hooks/dbHooks";
+import { useListStockBatches } from "../../db/hooks/batchHooks";
 import { useState } from "react";
 import { addItem } from "../../db/mutations/itemMutate";
 import { Item } from "../../types/Item.type";
@@ -20,6 +21,7 @@ export default function MyModal({
   const [stock, setStock] = useState<number | undefined>(item?.stock);
   const [hasOptions, setHasOptions] = useState(false);
   const [categories] = useListCategories();
+  const [batches] = useListStockBatches();
   const [selectedCategory, setSelectedCategory] = useState<SearchOption>(
     categories?.find((cat) => cat.id === item?.category) || {
       id: "-1",
@@ -52,6 +54,7 @@ export default function MyModal({
       price!,
       stock!,
       hasOptions,
+      batches ?? [],
       item?.id || undefined,
       item?.stock
     );

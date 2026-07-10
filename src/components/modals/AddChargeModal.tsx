@@ -3,10 +3,12 @@ import { Fragment, useState } from "react";
 import { IoAddOutline, IoRemoveOutline, IoSearchOutline } from "react-icons/io5";
 import { AiOutlineLoading } from "react-icons/ai";
 import { useListItems } from "../../db/hooks/dbHooks";
+import { useListStockBatches } from "../../db/hooks/batchHooks";
 import { addCharge } from "../../db/mutations/creditMutate";
 import { Person } from "../../types/Person.type";
 import { Item } from "../../types/Item.type";
 import { OrderItem } from "../../types/Order.type";
+import { addUnitToCart, nextUnitPrice, reservedQtyForItem } from "../../lib/cartPricing";
 
 function todayInput() {
   return new Date().toISOString().slice(0, 10);
@@ -22,6 +24,7 @@ export default function AddChargeModal({
   person: Person;
 }) {
   const [items, itemsLoading] = useListItems();
+  const [batches] = useListStockBatches();
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [date, setDate] = useState(todayInput());
@@ -34,28 +37,21 @@ export default function AddChargeModal({
   const total = cart.reduce((sum, e) => sum + e.total, 0);
 
   function addToCart(item: Item) {
-    setCart((prev) => {
-      const existing = prev.find((e) => e.itemId === item.id);
-      if (existing) {
-        return prev.map((e) =>
-          e.itemId === item.id
-            ? { ...e, qty: e.qty + 1, total: (e.qty + 1) * e.price }
-            : e
-        );
-      }
-      return [
-        ...prev,
-        { itemId: item.id!, name: item.name, price: item.price, qty: 1, total: item.price },
-      ];
-    });
+    setCart((prev) => addUnitToCart(prev, item, batches ?? []));
   }
 
-  function updateQty(itemId: string, delta: number) {
+  function incrementLine(itemId: string) {
+    const item = (items ?? []).find((i) => i.id === itemId);
+    if (!item) return;
+    setCart((prev) => addUnitToCart(prev, item, batches ?? []));
+  }
+
+  function decrementLine(itemId: string, price: number) {
     setCart((prev) =>
       prev
         .map((e) =>
-          e.itemId === itemId
-            ? { ...e, qty: e.qty + delta, total: (e.qty + delta) * e.price }
+          e.itemId === itemId && e.price === price
+            ? { ...e, qty: e.qty - 1, total: (e.qty - 1) * price }
             : e
         )
         .filter((e) => e.qty > 0)
@@ -78,7 +74,7 @@ export default function AddChargeModal({
       if (item.id) stockMap[item.id] = item.stock;
     }
     const timestamp = new Date(`${date}T12:00:00`).getTime();
-    await addCharge(person.id!, cart, total, stockMap, timestamp, note || undefined);
+    await addCharge(person.id!, cart, total, stockMap, batches ?? [], timestamp, note || undefined);
     setSubmitting(false);
     closeModal();
   }
@@ -137,19 +133,26 @@ export default function AddChargeModal({
                           No items found
                         </p>
                       ) : (
-                        filteredItems.map((item) => (
-                          <button
-                            key={item.id}
-                            onClick={() => addToCart(item)}
-                            disabled={item.stock === 0}
-                            className="text-left border rounded-lg px-3 py-2 hover:bg-green-50 hover:border-green-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            <p className="text-sm font-semibold truncate">{item.name}</p>
-                            <p className="text-xs text-green-700 font-bold">
-                              Rs. {item.price.toLocaleString()}
-                            </p>
-                          </button>
-                        ))
+                        filteredItems.map((item) => {
+                          const effectivePrice = nextUnitPrice(
+                            batches ?? [],
+                            item.id!,
+                            reservedQtyForItem(cart, item.id!)
+                          );
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => addToCart(item)}
+                              disabled={effectivePrice === null}
+                              className="text-left border rounded-lg px-3 py-2 hover:bg-green-50 hover:border-green-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              <p className="text-sm font-semibold truncate">{item.name}</p>
+                              <p className="text-xs text-green-700 font-bold">
+                                Rs. {(effectivePrice ?? item.price).toLocaleString()}
+                              </p>
+                            </button>
+                          );
+                        })
                       )}
                     </div>
                   </div>
@@ -165,7 +168,7 @@ export default function AddChargeModal({
                       ) : (
                         cart.map((entry) => (
                           <div
-                            key={entry.itemId}
+                            key={`${entry.itemId}-${entry.price}`}
                             className="flex items-center gap-2 border rounded-lg px-2 py-1.5"
                           >
                             <div className="flex-1 min-w-0">
@@ -175,14 +178,14 @@ export default function AddChargeModal({
                               </p>
                             </div>
                             <button
-                              onClick={() => updateQty(entry.itemId, -1)}
+                              onClick={() => decrementLine(entry.itemId, entry.price)}
                               className="w-5 h-5 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center"
                             >
                               <IoRemoveOutline className="w-3 h-3" />
                             </button>
                             <span className="text-xs w-3 text-center">{entry.qty}</span>
                             <button
-                              onClick={() => updateQty(entry.itemId, 1)}
+                              onClick={() => incrementLine(entry.itemId)}
                               className="w-5 h-5 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center"
                             >
                               <IoAddOutline className="w-3 h-3" />

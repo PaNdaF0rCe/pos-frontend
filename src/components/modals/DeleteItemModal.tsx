@@ -1,6 +1,7 @@
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import { deleteItem } from "../../db/mutations/itemMutate";
+import { useListStockBatches } from "../../db/hooks/batchHooks";
 import { Item } from "../../types/Item.type";
 
 export default function MyModal({
@@ -12,6 +13,8 @@ export default function MyModal({
   selectedItem: Item;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
+  const [batches] = useListStockBatches();
+
   function closeModal() {
     setIsOpen(false);
   }
@@ -61,7 +64,7 @@ export default function MyModal({
                       type="button"
                       className="inline-flex justify-center rounded-md border border-transparent bg-red-200 px-4 py-2 text-sm font-medium text-red-900 hover:bg-red-400 hover:text-white focus:outline-none"
                       onClick={async () => {
-                        await deleteItem(selectedItem?.id!);
+                        await deleteItem(selectedItem?.id!, batches ?? []);
                         closeModal();
                       }}
                     >

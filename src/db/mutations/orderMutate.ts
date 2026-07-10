@@ -2,12 +2,15 @@ import { push, ref, update } from "firebase/database";
 import { firebaseDB } from "../database";
 import { Order, OrderItem } from "../../types/Order.type";
 import { StockMovement } from "../../types/StockMovement.type";
+import { StockBatch } from "../../types/StockBatch.type";
+import { applyBatchConsumption } from "./batchMutate";
 
 export async function placeOrder(
   items: OrderItem[],
   subtotal: number,
   paymentMethod: "cash" | "card",
   stockMap: Record<string, number>,
+  batches: StockBatch[],
   cashReceived?: number
 ) {
   const timestamp = Date.now();
@@ -26,10 +29,13 @@ export async function placeOrder(
   const updates: Record<string, any> = {};
   updates[`orders/${key}/id`] = key;
 
-  for (const item of items) {
-    const newStock = (stockMap[item.itemId] ?? 0) - item.qty;
-    updates[`items/${item.itemId}/stock`] = Math.max(0, newStock);
+  const qtyByItem = applyBatchConsumption(updates, batches, items);
+  for (const [itemId, qty] of Object.entries(qtyByItem)) {
+    const newStock = (stockMap[itemId] ?? 0) - qty;
+    updates[`items/${itemId}/stock`] = Math.max(0, newStock);
+  }
 
+  for (const item of items) {
     const moveKey = push(ref(firebaseDB, "stockMovements")).key;
     const movement: StockMovement = {
       id: moveKey!,

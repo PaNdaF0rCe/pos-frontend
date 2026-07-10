@@ -1,7 +1,9 @@
-import { push, ref, update, remove } from "firebase/database";
+import { push, ref, update } from "firebase/database";
 import { Item } from "../../types/Item.type";
 import { StockMovement } from "../../types/StockMovement.type";
+import { StockBatch } from "../../types/StockBatch.type";
 import { firebaseDB } from "../database";
+import { adjustBatchesForManualEdit, deleteBatchesForItem } from "./batchMutate";
 
 export function addItem(
   name: string,
@@ -9,6 +11,7 @@ export function addItem(
   price: number,
   stock: number,
   options: boolean,
+  batches: StockBatch[],
   itemId?: string,
   previousStock?: number
 ) {
@@ -31,6 +34,8 @@ export function addItem(
 
     const delta = stock - (previousStock ?? stock);
     if (delta !== 0) {
+      adjustBatchesForManualEdit(updates, batches, itemId, price, delta, Date.now());
+
       const moveKey = push(ref(firebaseDB, "stockMovements")).key;
       const movement: StockMovement = {
         id: moveKey!,
@@ -45,33 +50,26 @@ export function addItem(
   } else {
     const key = push(ref(firebaseDB, "items"), item).key;
     updates[`items/${key}/id`] = key;
+
+    if (stock > 0) {
+      const batchKey = push(ref(firebaseDB, "stockBatches")).key;
+      const batch: StockBatch = {
+        id: batchKey!,
+        itemId: key!,
+        price,
+        qty: stock,
+        createdAt: Date.now(),
+      };
+      updates[`stockBatches/${batchKey}`] = batch;
+    }
   }
 
   return update(ref(firebaseDB), updates);
 }
 
-export function deleteItem(itemId: string) {
-  return remove(ref(firebaseDB, `/items/${itemId}`));
-}
-
-export function addStock(
-  itemId: string,
-  itemName: string,
-  currentStock: number,
-  qty: number
-) {
-  const timestamp = Date.now();
-  const moveKey = push(ref(firebaseDB, "stockMovements")).key;
-  const movement: StockMovement = {
-    id: moveKey!,
-    itemId,
-    itemName,
-    type: "restock",
-    delta: qty,
-    timestamp,
-  };
-  return update(ref(firebaseDB), {
-    [`items/${itemId}/stock`]: currentStock + qty,
-    [`stockMovements/${moveKey}`]: movement,
-  });
+export function deleteItem(itemId: string, batches: StockBatch[]) {
+  const updates: Record<string, any> = {};
+  updates[`items/${itemId}`] = null;
+  deleteBatchesForItem(updates, batches, itemId);
+  return update(ref(firebaseDB), updates);
 }
