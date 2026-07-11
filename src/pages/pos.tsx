@@ -163,7 +163,7 @@ export default function POSPage() {
           {filteredItems.map((item) => {
             const effectivePrice = nextUnitPrice(
               batches ?? [],
-              item.id!,
+              item,
               reservedQtyForItem(cart, item.id!)
             );
             return (

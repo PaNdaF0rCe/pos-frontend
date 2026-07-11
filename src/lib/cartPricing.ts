@@ -2,10 +2,22 @@ import { Item } from "../types/Item.type";
 import { OrderItem } from "../types/Order.type";
 import { StockBatch } from "../types/StockBatch.type";
 
-export function batchesForItem(batches: StockBatch[], itemId: string): StockBatch[] {
-  return batches
-    .filter((b) => b.itemId === itemId && b.qty > 0)
+// Real batch records for this item, oldest first. If the item's total stock
+// is higher than what its batches account for (e.g. stock was added by code
+// that predates batch tracking, or a stale cached page bypassed it), the gap
+// is treated as an implicit legacy batch at the item's current price so the
+// item never becomes permanently unsellable — it just behaves like it did
+// before batch pricing existed, until it's reconciled by the migration.
+export function batchesForItem(batches: StockBatch[], item: Item): StockBatch[] {
+  const real = batches
+    .filter((b) => b.itemId === item.id && b.qty > 0)
     .sort((a, b) => a.createdAt - b.createdAt);
+  const covered = real.reduce((sum, b) => sum + b.qty, 0);
+  const uncovered = item.stock - covered;
+  if (uncovered > 0) {
+    return [...real, { itemId: item.id!, price: item.price, qty: uncovered, createdAt: 0 }];
+  }
+  return real;
 }
 
 // Given how many units of this item are already reserved (e.g. already in the
@@ -13,11 +25,11 @@ export function batchesForItem(batches: StockBatch[], itemId: string): StockBatc
 // oldest-first. Returns null if there isn't enough stock left.
 export function nextUnitPrice(
   batches: StockBatch[],
-  itemId: string,
+  item: Item,
   reservedQty: number
 ): number | null {
   let skip = reservedQty;
-  for (const batch of batchesForItem(batches, itemId)) {
+  for (const batch of batchesForItem(batches, item)) {
     if (skip < batch.qty) return batch.price;
     skip -= batch.qty;
   }
@@ -40,7 +52,7 @@ export function addUnitToCart(
   batches: StockBatch[]
 ): OrderItem[] {
   const reserved = reservedQtyForItem(cart, item.id!);
-  const price = nextUnitPrice(batches, item.id!, reserved);
+  const price = nextUnitPrice(batches, item, reserved);
   if (price === null) return cart;
 
   const existing = cart.find((e) => e.itemId === item.id && e.price === price);
@@ -57,12 +69,12 @@ export function addUnitToCart(
 // decide exactly which batch document(s) to decrement.
 export function allocateFifo(
   batches: StockBatch[],
-  itemId: string,
+  item: Item,
   qty: number
 ): { batchId: string; qty: number }[] {
   const allocations: { batchId: string; qty: number }[] = [];
   let remaining = qty;
-  for (const batch of batchesForItem(batches, itemId)) {
+  for (const batch of batchesForItem(batches, item)) {
     if (remaining <= 0) break;
     const take = Math.min(batch.qty, remaining);
     allocations.push({ batchId: batch.id!, qty: take });
