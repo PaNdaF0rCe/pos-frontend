@@ -76,6 +76,30 @@ export async function addCharge(
   return key;
 }
 
+// A charge with no items — for when a sale happened but wasn't recorded
+// through the normal checkout/credit flow, so there's nothing to track
+// against stock. Just adds the amount straight to what the person owes.
+export function addManualCharge(
+  personId: string,
+  amount: number,
+  timestamp: number,
+  note?: string
+) {
+  const entry: CreditEntry = {
+    personId,
+    type: "charge",
+    amount,
+    timestamp,
+    ...(note ? { note } : {}),
+  };
+
+  const key = push(ref(firebaseDB, "creditEntries"), entry).key;
+  const updates: Record<string, any> = {};
+  updates[`creditEntries/${key}/id`] = key;
+
+  return update(ref(firebaseDB), updates);
+}
+
 export function addPayment(
   personId: string,
   amount: number,

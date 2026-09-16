@@ -63,6 +63,7 @@ export default function OrdersPage() {
       subtotal: e.amount,
       kind: "creditCharge",
       personName: peopleMap.get(e.personId) ?? "Unknown",
+      note: e.note,
     }));
 
   const creditPaymentRows: SaleRow[] = (entries ?? [])
@@ -223,7 +224,11 @@ function SaleRowView({
           <p className="text-xs text-neutral-400">
             {isCreditPayment
               ? `Payment from ${row.personName}`
-              : `${row.items.reduce((s, i) => s + i.qty, 0)} items${
+              : row.items.length > 0
+              ? `${row.items.reduce((s, i) => s + i.qty, 0)} items${
+                  isCreditCharge && row.personName ? ` — ${row.personName}` : ""
+                }`
+              : `${row.note || "Manual charge"}${
                   isCreditCharge && row.personName ? ` — ${row.personName}` : ""
                 }`}
           </p>

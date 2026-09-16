@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AiOutlineLoading } from "react-icons/ai";
 import { IoAddOutline, IoChevronDown, IoChevronUp, IoSearchOutline } from "react-icons/io5";
 import { FaRegTrashAlt } from "react-icons/fa";
-import { MdOutlineLocalAtm, MdOutlinePrint } from "react-icons/md";
+import { MdOutlineLocalAtm, MdOutlinePrint, MdOutlineAddCard } from "react-icons/md";
 import { useListPeople, useListCreditEntries } from "../db/hooks/creditHooks";
 import { useListItems } from "../db/hooks/dbHooks";
 import { useListStockBatches } from "../db/hooks/batchHooks";
@@ -10,6 +10,7 @@ import { addPerson, deleteCreditEntry } from "../db/mutations/creditMutate";
 import { Person } from "../types/Person.type";
 import { CreditEntry } from "../types/CreditEntry.type";
 import AddChargeModal from "../components/modals/AddChargeModal";
+import AddAmountModal from "../components/modals/AddAmountModal";
 import AddPaymentModal from "../components/modals/AddPaymentModal";
 import DeletePersonModal from "../components/modals/DeletePersonModal";
 
@@ -23,6 +24,7 @@ export default function CreditsPage() {
   const [note, setNote] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [chargeTarget, setChargeTarget] = useState<Person | null>(null);
+  const [amountTarget, setAmountTarget] = useState<Person | null>(null);
   const [paymentTarget, setPaymentTarget] = useState<Person | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Person | null>(null);
 
@@ -175,6 +177,16 @@ export default function CreditsPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      setAmountTarget(person);
+                    }}
+                    className="print:hidden flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100"
+                  >
+                    <MdOutlineAddCard className="w-3.5 h-3.5" />
+                    Add Amount
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setPaymentTarget(person);
                     }}
                     className="print:hidden flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100"
@@ -216,9 +228,9 @@ export default function CreditsPage() {
                           </p>
                           {entry.type === "charge" ? (
                             <p>
-                              {entry.items
-                                ?.map((i) => `${i.name} × ${i.qty}`)
-                                .join(", ")}
+                              {entry.items && entry.items.length > 0
+                                ? entry.items.map((i) => `${i.name} × ${i.qty}`).join(", ")
+                                : entry.note || "Manual charge"}
                             </p>
                           ) : (
                             <p className="text-blue-700">
@@ -259,6 +271,13 @@ export default function CreditsPage() {
           isOpen={!!chargeTarget}
           setIsOpen={(open) => !open && setChargeTarget(null)}
           person={chargeTarget}
+        />
+      )}
+      {amountTarget && (
+        <AddAmountModal
+          isOpen={!!amountTarget}
+          setIsOpen={(open) => !open && setAmountTarget(null)}
+          person={amountTarget}
         />
       )}
       {paymentTarget && (
